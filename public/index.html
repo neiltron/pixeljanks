@@ -1,0 +1,120 @@
+<canvas id="loading_canvas" style='display: none' width="120", height="35"></canvas>
+<canvas id="canvas" width="240" height="64"></canvas>
+
+<script type='text/javascript' src='/js/dependencies/jquery-1.11.1.js'></script>
+<script type='text/javascript' src='/js/dependencies/requestanimationframe.js'></script>
+
+
+<script type='text/javascript' src='/js/Molecule-1.0-min.js'></script>
+
+<script type="text/javascript">
+var stage;
+
+function imageLoaded(e) {
+    var loading_el = document.getElementById("loading_canvas"),
+        el = document.getElementById("canvas"),
+        loading_canvas = loading_el.getContext("2d"),
+        canvas = el,
+        image = e.target,
+        width = loading_el.width,
+        height = loading_el.height;
+
+    stage = new Stage(canvas);
+
+    // draw the image and get pixel data
+    loading_canvas.drawImage(image, 0, 0);
+    var imageData = loading_canvas.getImageData(0, 0, width, height),
+        outputImage = imageData; // output image needs to be an ImageData object
+
+    for (y = 0; y < height; y++) {
+        inpos = y * width * 4;
+
+        for (x = 0; x < width; x++) {
+            r = imageData.data[inpos++];
+            g = imageData.data[inpos++];
+            b = imageData.data[inpos++];
+            a = imageData.data[inpos++];
+
+
+            var isWhite = (r == 255 && g == 255 && b == 255),
+                isTransparent = a == 0;
+
+            if (!isWhite && !isTransparent) {
+
+                var molecule = new Molecule(x,y,1);
+                molecule.color = rgbToHex(r,g,b);
+                molecule.alpha = .4;
+                molecule.target = { x: x, y: y };
+
+                stage.addChild(molecule);
+            }
+        }
+    }
+
+    $('#loading_canvas').remove();
+    $(im).remove();
+
+    // setInterval(bouncePixels, 1200);
+    movePixels();
+
+}
+
+var isExpanding = -50;
+
+function movePixels () {
+    var numChildren = stage.numChildren;
+
+        for(var i=0 ; i < numChildren; i++) {
+            isExpanding = isExpanding < 2000 ? ++isExpanding : -40000;
+
+            if (isExpanding > 0) {
+                expandPixels(i);
+            } else {
+                contractPixels(i);
+            }
+        }
+
+    requestAnimationFrame(function() { movePixels(); });
+}
+
+function expandPixels (i) {
+    var molecule = stage.getChildAt(i);
+        targetIsRight = molecule.x < molecule.target.x,
+        targetIsUp = molecule.y < molecule.target.y,
+        random = Math.random(1);
+
+    molecule.x += Math.round(random * 3 - 1.5);
+    molecule.y += Math.round(random * 1 - 2);
+}
+
+function contractPixels (i) {
+    var molecule = stage.getChildAt(i),
+        differenceX = Math.abs(molecule.target.x - molecule.x),
+        differenceY = Math.abs(molecule.target.y - molecule.y);
+
+    if (differenceX < 0.5) {
+        molecule.x = molecule.target.x;
+        molecule.y = molecule.target.y;
+    } else {
+        var targetIsRight = molecule.x < molecule.target.x,
+            targetIsUp = molecule.y < molecule.target.y;
+
+        molecule.x += (Math.random(1) - .05) * (targetIsRight ? 1 : -1)
+        molecule.y += (Math.random(1) - .05) * (targetIsUp ? 1 : -1)
+    }
+}
+
+function componentToHex(c) {
+    var hex = c.toString(16);
+    return hex.length == 1 ? "0" + hex : hex;
+}
+
+function rgbToHex(r, g, b) {
+    return "#" + componentToHex(r) + componentToHex(g) + componentToHex(b);
+}
+
+var im = new Image();
+im.onload = imageLoaded;
+im.src = "TOODOPE_small.png";
+
+</script>
